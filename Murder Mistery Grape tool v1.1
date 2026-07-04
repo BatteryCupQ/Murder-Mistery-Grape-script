@@ -1,0 +1,816 @@
+--[[
+    Project X - Часть 1: GUI, темы, UI-элементы
+]]
+
+local player = game.Players.LocalPlayer
+if not player then repeat task.wait() until player end
+
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+local GS = game:GetService("GuiService")
+local TS = game:GetService("TweenService")
+
+-- Темы
+local themes = {
+    dark = {
+        bg = Color3.fromRGB(15,15,15),
+        left = Color3.fromRGB(20,20,20),
+        accent = Color3.fromRGB(255,50,50),
+        text = Color3.fromRGB(200,200,200),
+        btn = Color3.fromRGB(35,35,35),
+        switch = Color3.fromRGB(50,50,50),
+        scroll = Color3.fromRGB(255,50,50),
+    },
+    light = {
+        bg = Color3.fromRGB(240,240,240),
+        left = Color3.fromRGB(220,220,220),
+        accent = Color3.fromRGB(200,50,50),
+        text = Color3.fromRGB(30,30,30),
+        btn = Color3.fromRGB(200,200,200),
+        switch = Color3.fromRGB(180,180,180),
+        scroll = Color3.fromRGB(200,50,50),
+    }
+}
+local currentTheme = "dark"
+
+-- Главный GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "ProjectX_"..math.random(1000,9999)
+gui.ResetOnSpawn = false
+local s,p = pcall(function() return gethui() end)
+gui.Parent = (s and p) or player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0,550,0,450)
+main.Position = UDim2.new(0.5,-275,0.5,-225)
+main.BackgroundColor3 = themes.dark.bg
+main.BorderSizePixel = 0
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
+
+local left = Instance.new("Frame")
+left.Size = UDim2.new(0,140,1,0)
+left.BackgroundColor3 = themes.dark.left
+left.BorderSizePixel = 0
+left.Parent = main
+Instance.new("UICorner", left).CornerRadius = UDim.new(0,12)
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1,0,0,50)
+header.BackgroundTransparency = 1
+header.Parent = main
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0,30,0,30)
+minimizeBtn.Position = UDim2.new(1,-35,0,10)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+minimizeBtn.Text = "_"
+minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 18
+minimizeBtn.Parent = header
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,6)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,-40,0,30)
+title.Position = UDim2.new(0,10,0,10)
+title.BackgroundTransparency = 1
+title.Text = "PROJECT X"
+title.TextColor3 = themes.dark.accent
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 20
+title.Parent = header
+
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1,-20,0,1)
+divider.Position = UDim2.new(0,10,0,45)
+divider.BackgroundColor3 = themes.dark.accent
+divider.BorderSizePixel = 0
+divider.Parent = left
+
+-- Кнопки категорий
+local function addCategory(name, y)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-16,0,30)
+    btn.Position = UDim2.new(0,8,0,y)
+    btn.BackgroundColor3 = themes.dark.btn
+    btn.Text = name
+    btn.TextColor3 = themes.dark.text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.AutoButtonColor = false
+    btn.Parent = left
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+    return btn
+end
+
+local btnVisuals = addCategory("🎯 Visuals", 55)
+local btnAimbot = addCategory("🔫 Aimbot", 90)
+local btnMisc = addCategory("🕵️ Misc", 125)
+local btnAuthor = addCategory("👤 Author", 160)
+local btnSettings = addCategory("⚙ Settings", 195)
+local btnSounds = addCategory("🔊 Sounds", 230)
+local allCategories = {btnVisuals, btnAimbot, btnMisc, btnAuthor, btnSettings, btnSounds}
+
+local function setActive(btn)
+    for _,b in ipairs(allCategories) do
+        b.BackgroundColor3 = themes[currentTheme].btn
+        b.TextColor3 = themes[currentTheme].text
+    end
+    btn.BackgroundColor3 = themes[currentTheme].accent
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+end
+
+-- Контент-область
+local contentArea = Instance.new("Frame")
+contentArea.Size = UDim2.new(1,-150,1,-55)
+contentArea.Position = UDim2.new(0,145,0,50)
+contentArea.BackgroundTransparency = 1
+contentArea.Parent = main
+
+local function createContentTab()
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,1,0)
+    frame.BackgroundTransparency = 1
+    frame.Visible = false
+    frame.Parent = contentArea
+    return frame
+end
+
+local contentVisuals = createContentTab()
+local contentAimbot = createContentTab()
+local contentMisc = createContentTab()
+local contentAuthor = createContentTab()
+local contentSettings = createContentTab()
+local contentSounds = createContentTab()
+
+local tabs = {
+    [btnVisuals] = contentVisuals,
+    [btnAimbot] = contentAimbot,
+    [btnMisc] = contentMisc,
+    [btnAuthor] = contentAuthor,
+    [btnSettings] = contentSettings,
+    [btnSounds] = contentSounds,
+}
+for btn, cont in pairs(tabs) do
+    btn.MouseButton1Click:Connect(function()
+        setActive(btn)
+        for _,c in pairs(tabs) do c.Visible = false end
+        cont.Visible = true
+    end)
+end
+
+setActive(btnVisuals)
+contentVisuals.Visible = true
+
+-- Функции UI (toggle, slider)
+local function createToggle(text, parent, default, callback)
+    local f = Instance.new("Frame", parent)
+    f.Size = UDim2.new(1,-10,0,32)
+    f.BackgroundColor3 = themes[currentTheme].btn
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,6)
+    local l = Instance.new("TextLabel", f)
+    l.Size = UDim2.new(0.65,0,1,0)
+    l.Position = UDim2.new(0,8,0,0)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = themes[currentTheme].text
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 12
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    local sw = Instance.new("TextButton", f)
+    sw.Size = UDim2.new(0,38,0,18)
+    sw.Position = UDim2.new(1,-46,0.5,-9)
+    sw.BackgroundColor3 = default and themes[currentTheme].accent or themes[currentTheme].switch
+    sw.Text = ""
+    sw.AutoButtonColor = false
+    Instance.new("UICorner", sw).CornerRadius = UDim.new(1,0)
+    local dot = Instance.new("Frame", sw)
+    dot.Size = UDim2.new(0,14,0,14)
+    dot.Position = default and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7)
+    dot.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
+    local state = default
+    sw.MouseButton1Click:Connect(function()
+        state = not state
+        sw.BackgroundColor3 = state and themes[currentTheme].accent or themes[currentTheme].switch
+        dot:TweenPosition(state and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7), "Out", "Quad", 0.15)
+        callback(state)
+    end)
+end
+
+local function createSlider(text, parent, min, max, default, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1,-10,0,50)
+    frame.BackgroundColor3 = themes[currentTheme].btn
+    frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1,-16,0,18)
+    label.Position = UDim2.new(0,8,0,4)
+    label.BackgroundTransparency = 1
+    label.Text = text..": "..default
+    label.TextColor3 = themes[currentTheme].text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 11
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local bg = Instance.new("Frame", frame)
+    bg.Size = UDim2.new(1,-20,0,6)
+    bg.Position = UDim2.new(0,10,0,30)
+    bg.BackgroundColor3 = themes[currentTheme].switch
+    bg.BorderSizePixel = 0
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(1,0)
+
+    local fill = Instance.new("Frame", bg)
+    local percent = (default - min) / (max - min)
+    fill.Size = UDim2.new(percent,0,1,0)
+    fill.BackgroundColor3 = themes[currentTheme].accent
+    fill.BorderSizePixel = 0
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+
+    local knob = Instance.new("TextButton", bg)
+    knob.Size = UDim2.new(0,14,0,14)
+    knob.Position = UDim2.new(percent,-7,0.5,-7)
+    knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    knob.BorderSizePixel = 0
+    knob.Text = ""
+    knob.AutoButtonColor = false
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+    local value = default
+    local dragging = false
+
+    local function updateFromAbsolute(x)
+        local rel = math.clamp((x - bg.AbsolutePosition.X) / bg.AbsoluteSize.X, 0, 1)
+        value = math.floor(min + (max - min) * rel + 0.5)
+        value = math.clamp(value, min, max)
+        fill.Size = UDim2.new(rel,0,1,0)
+        knob.Position = UDim2.new(rel,-7,0.5,-7)
+        label.Text = text..": "..value
+        if callback then callback(value) end
+    end
+
+    bg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateFromAbsolute(input.Position.X)
+        end
+    end)
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateFromAbsolute(input.Position.X)
+        end
+    end)
+end
+
+-- Перетаскивание
+local dragging, dragStart, startPos
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+UIS.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+delta.X, startPos.Y.Scale, startPos.Y.Offset+delta.Y)
+        if previewFrame then
+            previewFrame.Position = UDim2.new(0,main.AbsolutePosition.X+main.AbsoluteSize.X+10, 0,main.AbsolutePosition.Y+50)
+        end
+    end
+end)
+
+-- Сворачивание
+local minimized = false
+local originalSize = main.Size
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        originalSize = main.Size
+        main.Size = UDim2.new(0,160,0,50)
+        contentArea.Visible = false
+        minimizeBtn.Text = "+"
+    else
+        main.Size = originalSize
+        contentArea.Visible = true
+        minimizeBtn.Text = "_"
+    end
+end)
+
+UIS.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.Insert then
+        gui.Enabled = not gui.Enabled
+    end
+end)
+
+print("✅ Часть 1 загружена")
+--[[
+    Project X - Часть 2: ESP и превью
+]]
+
+-- ESP настройки
+local esp = {enabled=false, boxes=true, skeleton=false, health=true, tracers=false, names=true, trail=false, trailColor=Color3.fromRGB(255,50,50)}
+local drawings = {}
+
+function clearESP()
+    for _,d in pairs(drawings) do pcall(function() d:Remove() end) end
+    drawings = {}
+end
+
+function drawESP()
+    clearESP()
+    if not esp.enabled then return end
+    local cam = workspace.CurrentCamera
+    for _,plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            if head then
+                local pos, on = cam:WorldToViewportPoint(head.Position)
+                if on then
+                    if esp.boxes then
+                        local b = Drawing.new("Square")
+                        b.Position = Vector2.new(pos.X-20, pos.Y-30)
+                        b.Size = Vector2.new(40,55)
+                        b.Color = Color3.fromRGB(255,50,50)
+                        b.Thickness = 2
+                        b.Filled = false
+                        b.Visible = true
+                        table.insert(drawings,b)
+                    end
+                    if esp.skeleton then
+                        local bones = {{"Head","UpperTorso"},{"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"UpperTorso","LowerTorso"},{"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"}}
+                        for _,p in ipairs(bones) do
+                            local a,b = plr.Character:FindFirstChild(p[1]), plr.Character:FindFirstChild(p[2])
+                            if a and b then
+                                local pa = cam:WorldToViewportPoint(a.Position)
+                                local pb = cam:WorldToViewportPoint(b.Position)
+                                local line = Drawing.new("Line")
+                                line.From = Vector2.new(pa.X,pa.Y)
+                                line.To = Vector2.new(pb.X,pb.Y)
+                                line.Color = Color3.fromRGB(255,255,255)
+                                line.Thickness = 1
+                                line.Visible = true
+                                table.insert(drawings,line)
+                            end
+                        end
+                    end
+                    if esp.health then
+                        local hum = plr.Character:FindFirstChild("Humanoid")
+                        if hum then
+                            local pct = hum.Health/hum.MaxHealth
+                            local bg = Drawing.new("Line")
+                            bg.From = Vector2.new(pos.X-22, pos.Y-35)
+                            bg.To = Vector2.new(pos.X+22, pos.Y-35)
+                            bg.Color = Color3.fromRGB(50,50,50)
+                            bg.Thickness = 3
+                            bg.Visible = true
+                            table.insert(drawings,bg)
+                            local fill = Drawing.new("Line")
+                            fill.From = Vector2.new(pos.X-22, pos.Y-35)
+                            fill.To = Vector2.new(pos.X-22+44*pct, pos.Y-35)
+                            fill.Color = pct>0.5 and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+                            fill.Thickness = 3
+                            fill.Visible = true
+                            table.insert(drawings,fill)
+                        end
+                    end
+                    if esp.tracers then
+                        local l = Drawing.new("Line")
+                        l.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                        l.To = Vector2.new(pos.X, pos.Y)
+                        l.Color = esp.trailColor
+                        l.Thickness = 1
+                        l.Visible = true
+                        table.insert(drawings,l)
+                    end
+                    if esp.names then
+                        local t = Drawing.new("Text")
+                        t.Text = plr.Name
+                        t.Position = Vector2.new(pos.X, pos.Y-43)
+                        t.Size = 12
+                        t.Color = Color3.fromRGB(255,255,255)
+                        t.Center = true
+                        t.Visible = true
+                        table.insert(drawings,t)
+                    end
+                end
+            end
+        end
+    end
+end
+
+RS.RenderStepped:Connect(function() if esp.enabled then drawESP() end end)
+
+-- Скролл Visuals
+local espScroll = Instance.new("ScrollingFrame", contentVisuals)
+espScroll.Size = UDim2.new(1,0,1,0)
+espScroll.BackgroundTransparency = 1
+espScroll.CanvasSize = UDim2.new(0,0,0,0)
+espScroll.ScrollBarThickness = 4
+espScroll.ScrollBarImageColor3 = themes[currentTheme].scroll
+local espList = Instance.new("UIListLayout", espScroll)
+espList.Padding = UDim.new(0,6)
+
+local function addSectionHeader(text, parent)
+    local h = Instance.new("TextLabel", parent)
+    h.Size = UDim2.new(1,-10,0,20)
+    h.BackgroundTransparency = 1
+    h.Text = text
+    h.TextColor3 = themes[currentTheme].accent
+    h.Font = Enum.Font.GothamBold
+    h.TextSize = 11
+    h.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+addSectionHeader("ESP SETTINGS", espScroll)
+createToggle("Enable ESP", espScroll, false, function(s) esp.enabled = s; if not s then clearESP() end end)
+createToggle("Boxes", espScroll, true, function(s) esp.boxes = s end)
+createToggle("Skeleton", espScroll, false, function(s) esp.skeleton = s end)
+createToggle("Health Bar", espScroll, true, function(s) esp.health = s end)
+createToggle("Tracers", espScroll, false, function(s) esp.tracers = s end)
+createToggle("Player Name", espScroll, true, function(s) esp.names = s end)
+
+addSectionHeader("TRAIL SETTINGS", espScroll)
+createToggle("Player Trail", espScroll, false, function(s) esp.trail = s end)
+
+-- Превью ESP (вынесено за меню)
+local previewFrame = Instance.new("Frame")
+previewFrame.Size = UDim2.new(0,180,0,200)
+previewFrame.Position = UDim2.new(0, main.AbsolutePosition.X+main.AbsoluteSize.X+10, 0, main.AbsolutePosition.Y+50)
+previewFrame.BackgroundColor3 = themes[currentTheme].btn
+previewFrame.BorderSizePixel = 0
+previewFrame.Parent = gui
+Instance.new("UICorner", previewFrame).CornerRadius = UDim.new(0,8)
+
+local previewTitle = Instance.new("TextLabel", previewFrame)
+previewTitle.Size = UDim2.new(1,0,0,25)
+previewTitle.BackgroundTransparency = 1
+previewTitle.Text = "PREVIEW"
+previewTitle.TextColor3 = themes[currentTheme].accent
+previewTitle.Font = Enum.Font.GothamBold
+previewTitle.TextSize = 10
+
+local previewBox = Instance.new("Frame", previewFrame)
+previewBox.Size = UDim2.new(0,40,0,55)
+previewBox.Position = UDim2.new(0.5,-20,0.55,-27)
+previewBox.BorderSizePixel = 1
+previewBox.BorderColor3 = Color3.fromRGB(255,50,50)
+previewBox.BackgroundTransparency = 1
+previewBox.Visible = esp.boxes
+Instance.new("UICorner", previewBox).CornerRadius = UDim.new(0,3)
+
+local previewName = Instance.new("TextLabel", previewFrame)
+previewName.Size = UDim2.new(0,60,0,14)
+previewName.Position = UDim2.new(0.5,-30,0.5,-45)
+previewName.BackgroundTransparency = 1
+previewName.Text = "Player"
+previewName.TextColor3 = Color3.fromRGB(255,255,255)
+previewName.Font = Enum.Font.Gotham
+previewName.TextSize = 10
+previewName.Visible = esp.names
+
+local previewHP = Instance.new("Frame", previewFrame)
+previewHP.Size = UDim2.new(0,44,0,3)
+previewHP.Position = UDim2.new(0.5,-22,0.5,-30)
+previewHP.BackgroundColor3 = Color3.fromRGB(50,50,50)
+previewHP.Visible = esp.health
+local previewHPFill = Instance.new("Frame", previewHP)
+previewHPFill.Size = UDim2.new(0.75,0,1,0)
+previewHPFill.BackgroundColor3 = Color3.fromRGB(0,255,0)
+
+function updatePreview()
+    previewBox.Visible = esp.boxes
+    previewName.Visible = esp.names
+    previewHP.Visible = esp.health
+end
+
+-- Обновление позиции превью при движении меню
+main:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+    previewFrame.Position = UDim2.new(0,main.AbsolutePosition.X+main.AbsoluteSize.X+10, 0,main.AbsolutePosition.Y+50)
+end)
+main:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    previewFrame.Position = UDim2.new(0,main.AbsolutePosition.X+main.AbsoluteSize.X+10, 0,main.AbsolutePosition.Y+50)
+end)
+
+spawn(function() while task.wait(0.1) do updatePreview() end end)
+
+print("✅ Часть 2 загружена")
+--[[
+    Project X - Часть 3: Aimbot и Misc
+]]
+
+-- Определение роли
+function getRole(plr)
+    if plr:FindFirstChild("Murderer") then return "Murderer" end
+    if plr:FindFirstChild("Sheriff") then return "Sheriff" end
+    local roleObj = plr:FindFirstChild("Role")
+    if roleObj and roleObj:IsA("StringValue") then return roleObj.Value end
+    if plr:GetAttribute("Role") then return plr:GetAttribute("Role") end
+    local char = plr.Character
+    if char then
+        local tag = char:FindFirstChild("RoleTag") or char:FindFirstChild("MurdererTag")
+        if tag then
+            if tag:IsA("BoolValue") and tag.Value then return "Murderer" end
+            if tag:IsA("StringValue") then return tag.Value end
+        end
+    end
+    return "Innocent"
+end
+
+function getMurderer()
+    for _,p in pairs(game.Players:GetPlayers()) do
+        if getRole(p) == "Murderer" then return p end
+    end
+    return nil
+end
+
+function isSheriff()
+    return getRole(player) == "Sheriff"
+end
+
+function hasRevolver()
+    local char = player.Character
+    if char then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool and (tool.Name:lower():find("revolver") or tool.Name:lower():find("gun")) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Настройки аимбота
+local aim = {enabled=false, silent=false, fov=200, smooth=5, autoShoot=false}
+local aimbotConnection = nil
+
+function stopAimbot()
+    if aimbotConnection then
+        aimbotConnection:Disconnect()
+        aimbotConnection = nil
+    end
+end
+
+function startAimbot()
+    stopAimbot()
+    if not aim.enabled then return end
+    aimbotConnection = RS.RenderStepped:Connect(function()
+        if not aim.enabled then return end
+        if not isSheriff() then return end
+        if not hasRevolver() then return end
+        local murderer = getMurderer()
+        if not murderer or not murderer.Character then return end
+        local targetPart = murderer.Character:FindFirstChild("Head")
+        if not targetPart then return end
+
+        local camera = workspace.CurrentCamera
+        local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+        if not onScreen then return end
+        local screenCenter = camera.ViewportSize / 2
+        local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+        if distFromCenter > aim.fov then return end
+
+        local targetPos = targetPart.Position
+        if aim.silent then
+            local char = player.Character
+            if char then
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool and tool:FindFirstChild("Handle") then
+                    tool.Handle.CFrame = CFrame.new(tool.Handle.Position, targetPos)
+                    if aim.autoShoot then
+                        pcall(function()
+                            game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,nil,0)
+                            task.wait(0.05)
+                            game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,false,nil,0)
+                        end)
+                    end
+                    task.wait()
+                    pcall(function() tool.Handle.CFrame = tool.Handle.CFrame end)
+                end
+            end
+        else
+            local desiredCF = CFrame.new(camera.CFrame.Position, targetPos)
+            if aim.smooth > 0 then
+                camera.CFrame = camera.CFrame:Lerp(desiredCF, 1/aim.smooth)
+            else
+                camera.CFrame = desiredCF
+            end
+            if aim.autoShoot then
+                pcall(function()
+                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,nil,0)
+                    task.wait(0.05)
+                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,false,nil,0)
+                end)
+            end
+        end
+    end)
+end
+
+function updateAimbot()
+    stopAimbot()
+    if aim.enabled then startAimbot() end
+end
+
+-- Вкладка Aimbot
+local aimbotScroll = Instance.new("ScrollingFrame", contentAimbot)
+aimbotScroll.Size = UDim2.new(1,0,1,0)
+aimbotScroll.BackgroundTransparency = 1
+aimbotScroll.CanvasSize = UDim2.new(0,0,0,0)
+aimbotScroll.ScrollBarThickness = 4
+aimbotScroll.ScrollBarImageColor3 = themes[currentTheme].scroll
+local aimbotList = Instance.new("UIListLayout", aimbotScroll)
+aimbotList.Padding = UDim.new(0,6)
+
+addSectionHeader("AIMBOT (Sheriff)", aimbotScroll)
+createToggle("Enabled", aimbotScroll, false, function(s) aim.enabled = s; updateAimbot() end)
+createToggle("Silent Aim", aimbotScroll, false, function(s) aim.silent = s end)
+createToggle("Auto Shoot", aimbotScroll, false, function(s) aim.autoShoot = s end)
+createSlider("FOV", aimbotScroll, 50, 500, 200, function(v) aim.fov = v end)
+createSlider("Smoothness", aimbotScroll, 0, 20, 5, function(v) aim.smooth = v end)
+
+-- Вкладка Misc (роли)
+local roleLabels = {}
+function updateRoles()
+    for _,lbl in pairs(roleLabels) do lbl:Remove() end
+    roleLabels = {}
+    local y = 10
+    for _,p in pairs(game.Players:GetPlayers()) do
+        local lbl = Instance.new("TextLabel", contentMisc)
+        lbl.Size = UDim2.new(1,-20,0,22)
+        lbl.Position = UDim2.new(0,10,0,y)
+        lbl.BackgroundTransparency = 1
+        local role = getRole(p)
+        lbl.Text = p.Name.." - "..role
+        lbl.TextColor3 = role=="Murderer" and Color3.fromRGB(255,0,0) or (role=="Sheriff" and Color3.fromRGB(0,100,255) or Color3.fromRGB(200,200,200))
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 12
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        roleLabels[lbl] = true
+        y = y + 24
+    end
+    contentMisc.CanvasSize = UDim2.new(0,0,0,y+20)
+end
+spawn(function() while task.wait(2) do updateRoles() end end)
+
+print("✅ Часть 3 загружена")
+--[[
+    Project X - Часть 4: Author, Settings, Sounds
+]]
+
+-- Author
+local logo = Instance.new("ImageLabel", contentAuthor)
+logo.Size = UDim2.new(0,60,0,60)
+logo.Position = UDim2.new(0.5,-30,0.3,-30)
+logo.BackgroundTransparency = 1
+logo.Image = "rbxassetid://7072705838"
+logo.ScaleType = Enum.ScaleType.Fit
+
+local authorText = Instance.new("TextLabel", contentAuthor)
+authorText.Size = UDim2.new(1,0,0,30)
+authorText.Position = UDim2.new(0,0,0.5,0)
+authorText.BackgroundTransparency = 1
+authorText.Text = "TGK: @t.me/scr1ptstester"
+authorText.TextColor3 = themes[currentTheme].text
+authorText.Font = Enum.Font.GothamBold
+authorText.TextSize = 14
+
+local telegramBtn = Instance.new("TextButton", contentAuthor)
+telegramBtn.Size = UDim2.new(0,180,0,36)
+telegramBtn.Position = UDim2.new(0.5,-90,0.65,0)
+telegramBtn.BackgroundColor3 = Color3.fromRGB(0,136,204)
+telegramBtn.Text = "Открыть Telegram"
+telegramBtn.TextColor3 = Color3.fromRGB(255,255,255)
+telegramBtn.Font = Enum.Font.GothamBold
+telegramBtn.TextSize = 14
+Instance.new("UICorner", telegramBtn).CornerRadius = UDim.new(0,8)
+telegramBtn.MouseButton1Click:Connect(function()
+    GS:OpenBrowserWindow("https://t.me/scr1ptstester")
+end)
+
+-- Settings (темы)
+local settingScroll = Instance.new("ScrollingFrame", contentSettings)
+settingScroll.Size = UDim2.new(1,0,1,0)
+settingScroll.BackgroundTransparency = 1
+settingScroll.CanvasSize = UDim2.new(0,0,0,0)
+settingScroll.ScrollBarThickness = 4
+settingScroll.ScrollBarImageColor3 = themes[currentTheme].scroll
+local settingList = Instance.new("UIListLayout", settingScroll)
+settingList.Padding = UDim.new(0,6)
+
+addSectionHeader("APPEARANCE", settingScroll)
+local themeDarkBtn = Instance.new("TextButton", settingScroll)
+themeDarkBtn.Size = UDim2.new(1,-10,0,30)
+themeDarkBtn.BackgroundColor3 = themes.dark.btn
+themeDarkBtn.Text = "Тёмная тема"
+themeDarkBtn.TextColor3 = themes.dark.text
+themeDarkBtn.Font = Enum.Font.Gotham
+themeDarkBtn.TextSize = 13
+Instance.new("UICorner", themeDarkBtn).CornerRadius = UDim.new(0,6)
+themeDarkBtn.MouseButton1Click:Connect(function()
+    currentTheme = "dark"
+    updateTheme()
+end)
+
+local themeLightBtn = Instance.new("TextButton", settingScroll)
+themeLightBtn.Size = UDim2.new(1,-10,0,30)
+themeLightBtn.BackgroundColor3 = themes.light.btn
+themeLightBtn.Text = "Светлая тема"
+themeLightBtn.TextColor3 = themes.light.text
+themeLightBtn.Font = Enum.Font.Gotham
+themeLightBtn.TextSize = 13
+Instance.new("UICorner", themeLightBtn).CornerRadius = UDim.new(0,6)
+themeLightBtn.MouseButton1Click:Connect(function()
+    currentTheme = "light"
+    updateTheme()
+end)
+
+-- Функция обновления темы
+function updateTheme()
+    local t = themes[currentTheme]
+    main.BackgroundColor3 = t.bg
+    left.BackgroundColor3 = t.left
+    title.TextColor3 = t.accent
+    divider.BackgroundColor3 = t.accent
+    for _,b in ipairs(allCategories) do
+        if b.BackgroundColor3 ~= t.accent then
+            b.BackgroundColor3 = t.btn
+            b.TextColor3 = t.text
+        end
+    end
+    espScroll.ScrollBarImageColor3 = t.scroll
+    aimbotScroll.ScrollBarImageColor3 = t.scroll
+    previewFrame.BackgroundColor3 = t.btn
+    previewTitle.TextColor3 = t.accent
+end
+
+-- Sounds (стоны аниме-тянки)
+local soundEnabled = false
+local moanSound = Instance.new("Sound")
+moanSound.SoundId = "rbxassetid://0" -- ЗАМЕНИ НА ID СТОНОВ!
+moanSound.Volume = 1
+moanSound.Looped = false
+moanSound.Parent = gui
+
+local function footstepCheck()
+    if not soundEnabled then return end
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") then
+        local hum = char.Humanoid
+        if hum.MoveDirection.Magnitude > 0 then
+            if not moanSound.IsPlaying then moanSound:Play() end
+        else
+            if moanSound.IsPlaying then moanSound:Stop() end
+        end
+    end
+end
+RS.RenderStepped:Connect(footstepCheck)
+
+local soundFrame = Instance.new("Frame", contentSounds)
+soundFrame.Size = UDim2.new(1,-20,1,-20)
+soundFrame.Position = UDim2.new(0,10,0,10)
+soundFrame.BackgroundTransparency = 1
+
+local soundBtn = Instance.new("TextButton", soundFrame)
+soundBtn.Size = UDim2.new(0,220,0,40)
+soundBtn.Position = UDim2.new(0.5,-110,0.4,-20)
+soundBtn.BackgroundColor3 = themes[currentTheme].btn
+soundBtn.Text = "Стоны аниме-тянки OFF"
+soundBtn.TextColor3 = themes[currentTheme].text
+soundBtn.Font = Enum.Font.GothamBold
+soundBtn.TextSize = 13
+Instance.new("UICorner", soundBtn).CornerRadius = UDim.new(0,8)
+
+soundBtn.MouseButton1Click:Connect(function()
+    soundEnabled = not soundEnabled
+    soundBtn.Text = soundEnabled and "Стоны аниме-тянки ON" or "Стоны аниме-тянки OFF"
+    soundBtn.BackgroundColor3 = soundEnabled and themes[currentTheme].accent or themes[currentTheme].btn
+end)
+
+local soundHint = Instance.new("TextLabel", soundFrame)
+soundHint.Size = UDim2.new(1,0,0,20)
+soundHint.Position = UDim2.new(0,0,0.65,0)
+soundHint.BackgroundTransparency = 1
+soundHint.Text = "⚠ Замени ID звука в скрипте!"
+soundHint.TextColor3 = Color3.fromRGB(255,200,0)
+soundHint.Font = Enum.Font.Gotham
+soundHint.TextSize = 10
+
+print("✅ Project X полностью загружен!")
